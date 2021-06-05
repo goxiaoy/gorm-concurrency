@@ -1,4 +1,4 @@
-module github.com/goxiaoy/go-concurrency
+module github.com/goxiaoy/gorm-concurrency
 
 go 1.16
 
