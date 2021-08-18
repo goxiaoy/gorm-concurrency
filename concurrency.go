@@ -32,10 +32,6 @@ func (v Version) Value() (driver.Value, error) {
 	return v.String, nil
 }
 
-func (v *Version) GormDataType() string {
-	return "uuid"
-}
-
 func (v *Version) UnmarshalJSON(bytes []byte) error {
 	if string(bytes) == "null" {
 		v.Valid = false
