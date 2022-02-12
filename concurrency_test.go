@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 var DB *gorm.DB
@@ -40,11 +39,10 @@ func init() {
 
 func OpenTestConnection() (db *gorm.DB, err error) {
 	db, err = gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
-	db.Logger = db.Logger.LogMode(logger.Info)
-	return
+	return db.Debug(), err
 }
 
-func TestConcurrency(t *testing.T) {
+func TestAutoSetIfEmpty(t *testing.T) {
 	// test auto set if empty
 	e := TestEntity{
 		ID:   1,
@@ -52,46 +50,67 @@ func TestConcurrency(t *testing.T) {
 	}
 	err := DB.Create(&e).Error
 	assert.NoError(t, err)
-	ev1 := e.Version
-	assert.True(t, ev1.Valid)
-	assert.NotEmpty(t, ev1.String)
-	// test not set if not empty
-	e1 := TestEntity{
+	assert.True(t, e.Version.Valid)
+	assert.NotEmpty(t, e.Version.String)
+
+}
+
+func TestNotSetIfPresent(t *testing.T) {
+	// test auto set if empty
+	e := TestEntity{
 		ID:      2,
+		Name:    "2",
 		Version: NewVersion(),
 	}
-	e1v := e1.Version.String
-	err = DB.Create(&e1).Error
+	ev := e.Version.String
+	err := DB.Create(&e).Error
 	assert.NoError(t, err)
-	assert.Equal(t, e1v, e1.Version.String)
+	assert.True(t, e.Version.Valid)
+	assert.NotEmpty(t, e.Version.String)
+	assert.Equal(t, ev, e.Version.String)
+}
+
+func TestConcurrency(t *testing.T) {
+	// test auto set if empty
+	e := TestEntity{
+		ID:   3,
+		Name: "3",
+	}
+	err := DB.Create(&e).Error
+	assert.NoError(t, err)
 
 	// query for later error test
 	var ec TestEntity
-	err = DB.First(&ec, 1).Error
+	err = DB.First(&ec, "id", 3).Error
 	assert.NoError(t, err)
+	assert.Equal(t, e.ID, ec.ID)
 
 	//test update
-	tx := DB.Model(&e).Update("name", "2")
+	tx := DB.Model(&e).Update("name", "33")
 	assert.NoError(t, tx.Error)
 	assert.Equal(t, int64(1), tx.RowsAffected)
-	ev2 := e.Version
-	assert.True(t, ev2.Valid)
-	assert.NotEmpty(t, ev2.String)
-	assert.NotEqual(t, ev1.String, ev2.String)
+	assert.Equal(t, e.Name, "33")
 
-	affected := DB.Model(&ec).Update("name", "3").RowsAffected
+	//version should be updated
+	assert.True(t, e.Version.Valid)
+	assert.NotEmpty(t, e.Version.String)
+	assert.NotEqual(t, e.Version.String, ec.Version.String)
+
+	//error version
+	affected := DB.Model(&ec).Update("name", "33").RowsAffected
 	assert.Equal(t, int64(0), affected)
+
 	//test error
-	err = ConcurrentUpdate(DB.Model(&ec), "name", "3").Error
+	err = ConcurrentUpdate(DB.Model(&ec), "name", "33").Error
 	assert.ErrorIs(t, err, ErrConcurrent)
 
 	err = ConcurrentUpdates(DB.Model(&ec), map[string]interface{}{"name": "3"}).Error
 	assert.ErrorIs(t, err, ErrConcurrent)
 
-	err = ConcurrentUpdateColumn(DB.Model(&ec), "name", "3").Error
+	err = ConcurrentUpdateColumn(DB.Model(&ec), "name", "33").Error
 	assert.ErrorIs(t, err, ErrConcurrent)
 
-	err = ConcurrentUpdateColumns(DB.Model(&ec), map[string]interface{}{"name": "3"}).Error
+	err = ConcurrentUpdateColumns(DB.Model(&ec), map[string]interface{}{"name": "33"}).Error
 	assert.ErrorIs(t, err, ErrConcurrent)
 
 }

@@ -71,7 +71,7 @@ func (v VersionCreateClause) MergeClause(c *clause.Clause) {
 
 }
 func (v VersionCreateClause) ModifyStatement(statement *gorm.Statement) {
-	if statement.SQL.String() == "" {
+	if statement.SQL.Len() == 0 {
 		// create new value if empty
 		if cv, zero := v.Field.ValueOf(statement.ReflectValue); !zero {
 			if cvv, ok := cv.(Version); ok {
@@ -80,9 +80,9 @@ func (v VersionCreateClause) ModifyStatement(statement *gorm.Statement) {
 				}
 			}
 		}
-		nv := uuid.New().String()
-		statement.AddClause(clause.Set{{Column: clause.Column{Name: v.Field.DBName}, Value: nv}})
-		statement.SetColumn(v.Field.DBName, nv, true)
+		nv := NewVersion()
+		statement.AddClause(clause.Set{{Column: clause.Column{Name: v.Field.DBName}, Value: nv.String}})
+		statement.SetColumn(v.Field.DBName, nv.String, true)
 	}
 }
 
@@ -106,32 +106,48 @@ func (v VersionUpdateClause) MergeClause(c *clause.Clause) {
 
 }
 func (v VersionUpdateClause) ModifyStatement(statement *gorm.Statement) {
-	if _, ok := statement.Clauses["concurrency_set"]; !ok {
-		if c, ok := statement.Clauses["WHERE"]; ok {
-			if where, ok := c.Expression.(clause.Where); ok && len(where.Exprs) > 1 {
-				for _, expr := range where.Exprs {
-					if orCond, ok := expr.(clause.OrConditions); ok && len(orCond.Exprs) == 1 {
-						where.Exprs = []clause.Expression{clause.And(where.Exprs...)}
-						c.Expression = where
-						statement.Clauses["WHERE"] = c
-						break
+	if statement.SQL.Len() == 0 {
+		if _, ok := statement.Clauses["concurrency_query"]; !ok {
+			//build query
+			if c, ok := statement.Clauses["WHERE"]; ok {
+				if where, ok := c.Expression.(clause.Where); ok && len(where.Exprs) > 1 {
+					for _, expr := range where.Exprs {
+						if orCond, ok := expr.(clause.OrConditions); ok && len(orCond.Exprs) == 1 {
+							where.Exprs = []clause.Expression{clause.And(where.Exprs...)}
+							c.Expression = where
+							statement.Clauses["WHERE"] = c
+							break
+						}
 					}
 				}
 			}
-		}
-		if cv, zero := v.Field.ValueOf(statement.ReflectValue); !zero {
-			if cvv, ok := cv.(Version); ok {
-				if cvv.Valid {
-					statement.AddClause(clause.Where{Exprs: []clause.Expression{
-						clause.Eq{Column: clause.Column{Table: clause.CurrentTable, Name: v.Field.DBName}, Value: cvv.String},
-					}})
-
+			if cv, zero := v.Field.ValueOf(statement.ReflectValue); !zero {
+				if cvv, ok := cv.(Version); ok {
+					if cvv.Valid {
+						statement.AddClause(clause.Where{Exprs: []clause.Expression{
+							clause.Eq{Column: clause.Column{Table: clause.CurrentTable, Name: v.Field.DBName}, Value: cvv.String},
+						}})
+					}
 				}
 			}
+			statement.Clauses["concurrency_query"] = clause.Clause{}
 		}
-		nv := uuid.New().String()
-		statement.AddClause(clause.Set{{Column: clause.Column{Name: v.Field.DBName}, Value: nv}})
-		statement.SetColumn(v.Field.DBName, nv, true)
-		statement.Clauses["concurrency_set"] = clause.Clause{}
+
+		//set new value
+
+		nv := NewVersion()
+		if c, ok := statement.Clauses["SET"]; !ok {
+			statement.AddClause(clause.Set{{Column: clause.Column{Name: v.Field.DBName}, Value: nv.String}})
+		} else {
+			if set, ok := c.Expression.(clause.Set); ok {
+				a:= make([]clause.Assignment,len(set)+1)
+				copy(a,set)
+				a[len(a)-1] = clause.Assignment{Column: clause.Column{Name: v.Field.DBName}, Value: nv.String}
+				c.Expression = clause.Set(a)
+				statement.Clauses["SET"] = c
+			}
+		}
+		v.Field.Set(statement.ReflectValue,nv.String)
 	}
+
 }
