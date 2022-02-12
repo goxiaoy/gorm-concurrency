@@ -73,13 +73,13 @@ func (v VersionCreateClause) MergeClause(c *clause.Clause) {
 func (v VersionCreateClause) ModifyStatement(statement *gorm.Statement) {
 	if statement.SQL.Len() == 0 {
 		// create new value if empty
-		if cv, zero := v.Field.ValueOf(statement.ReflectValue); !zero {
-			if cvv, ok := cv.(Version); ok {
-				if cvv.Valid {
-					return
-				}
-			}
-		}
+		//if cv, zero := v.Field.ValueOf(statement.ReflectValue); !zero {
+		//	if cvv, ok := cv.(Version); ok {
+		//		if cvv.Valid {
+		//			return
+		//		}
+		//	}
+		//}
 		nv := NewVersion()
 		statement.AddClause(clause.Set{{Column: clause.Column{Name: v.Field.DBName}, Value: nv.String}})
 		statement.SetColumn(v.Field.DBName, nv.String, true)
