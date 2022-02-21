@@ -121,7 +121,7 @@ func (v VersionUpdateClause) ModifyStatement(statement *gorm.Statement) {
 					}
 				}
 			}
-			if cv, zero := v.Field.ValueOf(statement.ReflectValue); !zero {
+			if cv, zero := v.Field.ValueOf(statement.Context,statement.ReflectValue); !zero {
 				if cvv, ok := cv.(Version); ok {
 					if cvv.Valid {
 						statement.AddClause(clause.Where{Exprs: []clause.Expression{
@@ -147,7 +147,7 @@ func (v VersionUpdateClause) ModifyStatement(statement *gorm.Statement) {
 				statement.Clauses["SET"] = c
 			}
 		}
-		v.Field.Set(statement.ReflectValue,nv.String)
+		v.Field.Set(statement.Context,statement.ReflectValue,nv.String)
 	}
 
 }

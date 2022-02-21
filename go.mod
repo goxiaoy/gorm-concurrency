@@ -6,5 +6,5 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/stretchr/testify v1.7.0
 	gorm.io/driver/sqlite v1.1.4
-	gorm.io/gorm v1.22.5
+	gorm.io/gorm v1.23.1
 )
