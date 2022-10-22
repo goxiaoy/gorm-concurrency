@@ -61,28 +61,10 @@ func TestAutoSetIfEmpty(t *testing.T) {
 	err := DB.Create(&e).Error
 	assert.NoError(t, err)
 	assert.True(t, e.Version.Valid)
+	assert.Equal(t, e.Name, "1")
 	assert.NotEmpty(t, e.Version.String)
 
 }
-
-//func TestNotSetIfPresent(t *testing.T) {
-//	// test auto set if empty
-//	e := TestEntity{
-//		ID:      2,
-//		Name:    "2",
-//		Version: NewVersion(),
-//		Relates: []TestEntity2{
-//			{ID: 2},
-//			{ID: 3, Version: NewVersion()},
-//		},
-//	}
-//	ev := e.Version.String
-//	err := DB.Create(&e).Error
-//	assert.NoError(t, err)
-//	assert.True(t, e.Version.Valid)
-//	assert.NotEmpty(t, e.Version.String)
-//	assert.Equal(t, ev, e.Version.String)
-//}
 
 func TestConcurrency(t *testing.T) {
 	// test auto set if empty
