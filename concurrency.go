@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
-	"github.com/google/uuid"
+	"github.com/segmentio/ksuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/schema"
@@ -15,7 +15,7 @@ type Version sql.NullString
 func NewVersion() Version {
 	return Version{
 		Valid:  true,
-		String: uuid.New().String(),
+		String: ksuid.New().String(),
 	}
 }
 
