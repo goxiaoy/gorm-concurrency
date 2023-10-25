@@ -133,3 +133,20 @@ func (v VersionUpdateClause) ModifyStatement(stmt *gorm.Statement) {
 	}
 
 }
+
+// HasVersion embed struct
+type HasVersion struct {
+	Version Version
+}
+
+type VersionInterface interface {
+	GetConcurrencyVersion() *string
+}
+
+func (v HasVersion) GetConcurrencyVersion() *string {
+	if !v.Version.Valid {
+		return nil
+	}
+	r := v.Version.String
+	return &r
+}

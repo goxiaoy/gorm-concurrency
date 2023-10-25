@@ -19,7 +19,14 @@ Add `version` to your entity
 ``` go
 type TestEntity struct {
     ...
-	concurrency.Version
+	Version concurrency.Version
+}
+```
+or
+``` go
+type TestEntity struct {
+    ...
+	concurrency.HasVersion
 }
 ```
 

@@ -13,16 +13,16 @@ import (
 var DB *gorm.DB
 
 type TestEntity struct {
-	ID   uint
-	Name string
-	Version
+	ID      uint
+	Name    string
+	Version Version
 	Relates []TestEntity2
 }
 
 type TestEntity2 struct {
 	ID           uint
 	TestEntityID uint
-	Version
+	Version      Version
 }
 
 func init() {
